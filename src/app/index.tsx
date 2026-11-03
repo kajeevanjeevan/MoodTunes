@@ -1,5 +1,5 @@
-import { router } from "expo-router";
 
+import { router } from "expo-router";
 import {
   ScrollView,
   StatusBar,
@@ -23,6 +23,7 @@ export default function HomeScreen() {
       <StatusBar barStyle="light-content" />
 
       <ScrollView contentContainerStyle={styles.content}>
+        {/* App heading */}
         <Text style={styles.title}>MoodTunes 🎵</Text>
 
         <Text style={styles.subtitle}>
@@ -33,6 +34,7 @@ export default function HomeScreen() {
           Choose Your Mood
         </Text>
 
+        {/* Mood selection cards */}
         <View style={styles.grid}>
           {moods.map((mood) => (
             <TouchableOpacity
@@ -46,21 +48,38 @@ export default function HomeScreen() {
                 // Mood filtering will be implemented later.
               }}
             >
-              <Text style={styles.emoji}>{mood.emoji}</Text>
-              <Text style={styles.moodName}>{mood.name}</Text>
+              <Text style={styles.emoji}>
+                {mood.emoji}
+              </Text>
+
+              <Text style={styles.moodName}>
+                {mood.name}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
 
+        {/* Music Library button */}
         <TouchableOpacity
-  style={styles.libraryButton}
-  onPress={() => router.push("/library")}
->
-  <Text style={styles.libraryButtonText}>
-    Open Music Library 🎶
-  </Text>
-</TouchableOpacity>
+          style={styles.navigationButton}
+          onPress={() => router.push("/library")}
+        >
+          <Text style={styles.navigationButtonText}>
+            Open Music Library 🎶
+          </Text>
+        </TouchableOpacity>
 
+        {/* My Playlists button */}
+        <TouchableOpacity
+          style={styles.navigationButton}
+          onPress={() => router.push("/playlists")}
+        >
+          <Text style={styles.navigationButtonText}>
+            Open My Playlists 🎼
+          </Text>
+        </TouchableOpacity>
+
+        {/* Footer */}
         <Text style={styles.footer}>
           Your mood. Your music. Your moment.
         </Text>
@@ -74,33 +93,39 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#11101D",
   },
+
   content: {
     padding: 20,
     paddingTop: 45,
     paddingBottom: 40,
   },
+
   title: {
     fontSize: 30,
     fontWeight: "bold",
     color: "#F7F3FF",
     marginBottom: 10,
   },
+
   subtitle: {
     fontSize: 16,
     color: "#BEB6D3",
     marginBottom: 32,
   },
+
   sectionTitle: {
     fontSize: 21,
     fontWeight: "bold",
     color: "#FFFFFF",
     marginBottom: 18,
   },
+
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
   },
+
   moodCard: {
     width: "48%",
     height: 145,
@@ -109,32 +134,35 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     justifyContent: "space-between",
   },
+
   emoji: {
     fontSize: 35,
   },
+
   moodName: {
     fontSize: 19,
     fontWeight: "bold",
     color: "#FFFFFF",
   },
+
+  navigationButton: {
+    backgroundColor: "#7954B8",
+    padding: 16,
+    borderRadius: 14,
+    alignItems: "center",
+    marginTop: 20,
+  },
+
+  navigationButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+
   footer: {
     marginTop: 30,
     textAlign: "center",
     color: "#928BA6",
     fontSize: 13,
   },
-
-  libraryButton: {
-  backgroundColor: "#7954B8",
-  padding: 16,
-  borderRadius: 14,
-  alignItems: "center",
-  marginTop: 20,
-},
-
-libraryButtonText: {
-  color: "#FFFFFF",
-  fontSize: 16,
-  fontWeight: "bold",
-},
 });
