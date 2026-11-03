@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 
 import {
   ScrollView,
@@ -50,6 +51,15 @@ export default function HomeScreen() {
             </TouchableOpacity>
           ))}
         </View>
+
+        <TouchableOpacity
+  style={styles.libraryButton}
+  onPress={() => router.push("/library")}
+>
+  <Text style={styles.libraryButtonText}>
+    Open Music Library 🎶
+  </Text>
+</TouchableOpacity>
 
         <Text style={styles.footer}>
           Your mood. Your music. Your moment.
@@ -113,4 +123,18 @@ const styles = StyleSheet.create({
     color: "#928BA6",
     fontSize: 13,
   },
+
+  libraryButton: {
+  backgroundColor: "#7954B8",
+  padding: 16,
+  borderRadius: 14,
+  alignItems: "center",
+  marginTop: 20,
+},
+
+libraryButtonText: {
+  color: "#FFFFFF",
+  fontSize: 16,
+  fontWeight: "bold",
+},
 });
