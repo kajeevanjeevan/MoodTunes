@@ -1,29 +1,31 @@
 
 import {
-  Tabs,
   TabList,
-  TabTrigger,
+  Tabs,
   TabSlot,
-  TabTriggerSlotProps,
-  TabListProps,
-} from 'expo-router/ui';
+  TabTrigger,
+  type TabListProps,
+  type TabTriggerSlotProps,
+} from "expo-router/ui";
 
 import {
   Pressable,
-  useColorScheme,
-  View,
   StyleSheet,
-} from 'react-native';
+  View,
+} from "react-native";
 
-import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import {
+  MaxContentWidth,
+  Spacing,
+} from "@/constants/theme";
 
-import { ThemedText } from './themed-text';
-import { ThemedView } from './themed-view';
+import { ThemedText } from "./themed-text";
+import { ThemedView } from "./themed-view";
 
 export default function AppTabs() {
   return (
     <Tabs>
-      <TabSlot style={{ height: '100%' }} />
+      <TabSlot style={{ height: "100%" }} />
 
       <TabList asChild>
         <CustomTabList>
@@ -37,6 +39,10 @@ export default function AppTabs() {
 
           <TabTrigger name="playlists" href="/playlists" asChild>
             <TabButton>Playlists</TabButton>
+          </TabTrigger>
+
+          <TabTrigger name="favorites" href="/favorites" asChild>
+            <TabButton>Favorites</TabButton>
           </TabTrigger>
 
           <TabTrigger name="explore" href="/explore" asChild>
@@ -56,15 +62,23 @@ export function TabButton({
   return (
     <Pressable
       {...props}
-      style={({ pressed }) => pressed && styles.pressed}
+      style={({ pressed }) =>
+        pressed ? styles.pressed : undefined
+      }
     >
       <ThemedView
-        type={isFocused ? 'backgroundSelected' : 'backgroundElement'}
+        type={
+          isFocused
+            ? "backgroundSelected"
+            : "backgroundElement"
+        }
         style={styles.tabButtonView}
       >
         <ThemedText
           type="small"
-          themeColor={isFocused ? 'text' : 'textSecondary'}
+          themeColor={
+            isFocused ? "text" : "textSecondary"
+          }
         >
           {children}
         </ThemedText>
@@ -95,27 +109,27 @@ export function CustomTabList(props: TabListProps) {
 
 const styles = StyleSheet.create({
   tabListContainer: {
-    position: 'absolute',
-    width: '100%',
+    position: "absolute",
+    width: "100%",
     padding: Spacing.three,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
+    justifyContent: "center",
+    alignItems: "center",
+    flexDirection: "row",
   },
 
   innerContainer: {
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.five,
     borderRadius: Spacing.five,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flexGrow: 1,
     gap: Spacing.two,
     maxWidth: MaxContentWidth,
   },
 
   brandText: {
-    marginRight: 'auto',
+    marginRight: "auto",
   },
 
   pressed: {
@@ -128,3 +142,4 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.three,
   },
 });
+
