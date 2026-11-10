@@ -106,11 +106,19 @@ export default function SongDetailsScreen() {
           </Text>
         </TouchableOpacity>
 
-        <View style={styles.playerPlaceholder}>
-          <Text style={styles.buttonText}>
-            ▶ Music Player Coming Next
-          </Text>
-        </View>
+        <TouchableOpacity
+  style={styles.playerPlaceholder}
+  onPress={() =>
+    router.push({
+      pathname: "/player/[id]",
+      params: { id: String(song.id) },
+    })
+  }
+>
+  <Text style={styles.buttonText}>
+    ▶ Open Music Player
+  </Text>
+</TouchableOpacity>
 
         <Text style={styles.note}>
           Offline audio playback will be added

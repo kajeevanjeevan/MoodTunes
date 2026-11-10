@@ -36,6 +36,8 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
 
           <Stack.Screen name="song/[id]" />
+
+           <Stack.Screen name="player/[id]" />
         </Stack>
       </FavoritesProvider>
     </ThemeProvider>
