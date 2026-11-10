@@ -1,34 +1,54 @@
 
-import {
-  TabList,
-  Tabs,
-  TabSlot,
-  TabTrigger,
-  type TabListProps,
-  type TabTriggerSlotProps,
-} from "expo-router/ui";
+import type { TabTriggerSlotProps } from "expo-router/ui";
+import { TabList, Tabs, TabSlot, TabTrigger } from "expo-router/ui";
 
 import {
   Pressable,
   StyleSheet,
+  Text,
   View,
 } from "react-native";
 
-import {
-  MaxContentWidth,
-  Spacing,
-} from "@/constants/theme";
+type TabButtonProps = TabTriggerSlotProps & {
+  children?: React.ReactNode;
+};
 
-import { ThemedText } from "./themed-text";
-import { ThemedView } from "./themed-view";
+function TabButton({
+  ref: _ref,
+  children,
+  isFocused,
+  ...props
+}: TabButtonProps) {
+  return (
+    <Pressable
+      {...props}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: isFocused }}
+      style={({ pressed }) => [
+        styles.tabButton,
+        isFocused && styles.activeTab,
+        pressed && styles.pressedTab,
+      ]}
+    >
+      <Text
+        style={[
+          styles.tabText,
+          isFocused && styles.activeTabText,
+        ]}
+      >
+        {children}
+      </Text>
+    </Pressable>
+  );
+}
 
 export default function AppTabs() {
   return (
     <Tabs>
-      <TabSlot style={{ height: "100%" }} />
+      <TabSlot />
 
       <TabList asChild>
-        <CustomTabList>
+        <View style={styles.tabBar}>
           <TabTrigger name="home" href="/" asChild>
             <TabButton>Home</TabButton>
           </TabTrigger>
@@ -48,98 +68,50 @@ export default function AppTabs() {
           <TabTrigger name="explore" href="/explore" asChild>
             <TabButton>Explore</TabButton>
           </TabTrigger>
-        </CustomTabList>
+        </View>
       </TabList>
     </Tabs>
   );
 }
 
-export function TabButton({
-  children,
-  isFocused,
-  ...props
-}: TabTriggerSlotProps) {
-  return (
-    <Pressable
-      {...props}
-      style={({ pressed }) =>
-        pressed ? styles.pressed : undefined
-      }
-    >
-      <ThemedView
-        type={
-          isFocused
-            ? "backgroundSelected"
-            : "backgroundElement"
-        }
-        style={styles.tabButtonView}
-      >
-        <ThemedText
-          type="small"
-          themeColor={
-            isFocused ? "text" : "textSecondary"
-          }
-        >
-          {children}
-        </ThemedText>
-      </ThemedView>
-    </Pressable>
-  );
-}
-
-export function CustomTabList(props: TabListProps) {
-  return (
-    <View {...props} style={styles.tabListContainer}>
-      <ThemedView
-        type="backgroundElement"
-        style={styles.innerContainer}
-      >
-        <ThemedText
-          type="smallBold"
-          style={styles.brandText}
-        >
-          MoodTunes 🎵
-        </ThemedText>
-
-        {props.children}
-      </ThemedView>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  tabListContainer: {
-    position: "absolute",
-    width: "100%",
-    padding: Spacing.three,
+  tabBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    backgroundColor: "#211D30",
+    borderTopWidth: 1,
+    borderTopColor: "#39304F",
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+  },
+
+  tabButton: {
+    flex: 1,
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
-    flexDirection: "row",
+    paddingVertical: 10,
+    paddingHorizontal: 2,
+    borderRadius: 10,
   },
 
-  innerContainer: {
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.five,
-    borderRadius: Spacing.five,
-    flexDirection: "row",
-    alignItems: "center",
-    flexGrow: 1,
-    gap: Spacing.two,
-    maxWidth: MaxContentWidth,
+  activeTab: {
+    backgroundColor: "#7954B8",
   },
 
-  brandText: {
-    marginRight: "auto",
-  },
-
-  pressed: {
+  pressedTab: {
     opacity: 0.7,
   },
 
-  tabButtonView: {
-    paddingVertical: Spacing.one,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.three,
+  tabText: {
+    color: "#BEB6D3",
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+
+  activeTabText: {
+    color: "#FFFFFF",
+    fontWeight: "bold",
   },
 });
-

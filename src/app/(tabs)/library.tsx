@@ -1,5 +1,7 @@
 
+import { router } from "expo-router";
 import { useState } from "react";
+
 import {
   ScrollView,
   StyleSheet,
@@ -46,6 +48,7 @@ export default function LibraryScreen() {
         style={styles.mainScroll}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         <Text style={styles.heading}>
           Music Library 🎶
@@ -98,23 +101,35 @@ export default function LibraryScreen() {
         ) : (
           filteredSongs.map((song) => (
             <View key={song.id} style={styles.songCard}>
-              <Text style={styles.songEmoji}>
-                {song.emoji}
-              </Text>
-
-              <View style={styles.songInfo}>
-                <Text style={styles.songTitle}>
-                  {song.title}
+              <TouchableOpacity
+                style={styles.songInfoButton}
+                onPress={() =>
+                  router.push({
+                    pathname: "/song/[id]",
+                    params: {
+                      id: String(song.id),
+                    },
+                  })
+                }
+              >
+                <Text style={styles.songEmoji}>
+                  {song.emoji}
                 </Text>
 
-                <Text style={styles.songArtist}>
-                  {song.artist}
-                </Text>
+                <View style={styles.songInfo}>
+                  <Text style={styles.songTitle}>
+                    {song.title}
+                  </Text>
 
-                <Text style={styles.songMeta}>
-                  {song.genre} • {song.mood}
-                </Text>
-              </View>
+                  <Text style={styles.songArtist}>
+                    {song.artist}
+                  </Text>
+
+                  <Text style={styles.songMeta}>
+                    {song.genre} • {song.mood}
+                  </Text>
+                </View>
+              </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => toggleFavorite(song.id)}
@@ -215,6 +230,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     minHeight: 85,
+  },
+
+  songInfoButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
   },
 
   songEmoji: {
