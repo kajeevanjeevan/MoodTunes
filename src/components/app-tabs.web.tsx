@@ -1,6 +1,12 @@
 
 import type { TabTriggerSlotProps } from "expo-router/ui";
-import { TabList, Tabs, TabSlot, TabTrigger } from "expo-router/ui";
+
+import {
+  TabList,
+  Tabs,
+  TabSlot,
+  TabTrigger,
+} from "expo-router/ui";
 
 import {
   Pressable,
@@ -23,11 +29,12 @@ function TabButton({
     <Pressable
       {...props}
       accessibilityRole="tab"
-      accessibilityState={{ selected: isFocused }}
-      style={({ pressed }) => [
+      accessibilityState={{
+        selected: isFocused,
+      }}
+      style={[
         styles.tabButton,
         isFocused && styles.activeTab,
-        pressed && styles.pressedTab,
       ]}
     >
       <Text
@@ -49,23 +56,43 @@ export default function AppTabs() {
 
       <TabList asChild>
         <View style={styles.tabBar}>
-          <TabTrigger name="home" href="/" asChild>
+          <TabTrigger
+            name="home"
+            href="/"
+            asChild
+          >
             <TabButton>Home</TabButton>
           </TabTrigger>
 
-          <TabTrigger name="library" href="/library" asChild>
+          <TabTrigger
+            name="library"
+            href="/library"
+            asChild
+          >
             <TabButton>Library</TabButton>
           </TabTrigger>
 
-          <TabTrigger name="playlists" href="/playlists" asChild>
+          <TabTrigger
+            name="playlists"
+            href="/playlists"
+            asChild
+          >
             <TabButton>Playlists</TabButton>
           </TabTrigger>
 
-          <TabTrigger name="favorites" href="/favorites" asChild>
+          <TabTrigger
+            name="favorites"
+            href="/favorites"
+            asChild
+          >
             <TabButton>Favorites</TabButton>
           </TabTrigger>
 
-          <TabTrigger name="explore" href="/explore" asChild>
+          <TabTrigger
+            name="explore"
+            href="/explore"
+            asChild
+          >
             <TabButton>Explore</TabButton>
           </TabTrigger>
         </View>
@@ -97,10 +124,6 @@ const styles = StyleSheet.create({
 
   activeTab: {
     backgroundColor: "#7954B8",
-  },
-
-  pressedTab: {
-    opacity: 0.7,
   },
 
   tabText: {

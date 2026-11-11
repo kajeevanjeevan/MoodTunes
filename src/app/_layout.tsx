@@ -1,33 +1,16 @@
 
 import {
   DarkTheme,
-  DefaultTheme,
   Stack,
   ThemeProvider,
 } from "expo-router";
 
-import * as SplashScreen from "expo-splash-screen";
-import { useColorScheme } from "react-native";
-
-import { AnimatedSplashOverlay } from "@/components/animated-icon";
 import { FavoritesProvider } from "@/context/FavoritesContext";
 
-SplashScreen.preventAutoHideAsync();
-
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider
-      value={
-        colorScheme === "dark"
-          ? DarkTheme
-          : DefaultTheme
-      }
-    >
+    <ThemeProvider value={DarkTheme}>
       <FavoritesProvider>
-        <AnimatedSplashOverlay />
-
         <Stack
           screenOptions={{
             headerShown: false,
@@ -35,9 +18,21 @@ export default function RootLayout() {
         >
           <Stack.Screen name="(tabs)" />
 
+          <Stack.Screen
+            name="settings"
+            options={{
+              headerShown: true,
+              title: "Settings",
+              headerStyle: {
+                backgroundColor: "#11101D",
+              },
+              headerTintColor: "#FFFFFF",
+            }}
+          />
+
           <Stack.Screen name="song/[id]" />
 
-           <Stack.Screen name="player/[id]" />
+          <Stack.Screen name="player/[id]" />
         </Stack>
       </FavoritesProvider>
     </ThemeProvider>

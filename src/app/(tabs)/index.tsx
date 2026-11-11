@@ -1,5 +1,7 @@
 
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+
 import {
   ScrollView,
   StatusBar,
@@ -10,31 +12,87 @@ import {
 } from "react-native";
 
 const moods = [
-  { id: 1, name: "Happy", emoji: "😊", color: "#49321D" },
-  { id: 2, name: "Sad", emoji: "🌧️", color: "#243654" },
-  { id: 3, name: "Calm", emoji: "🌿", color: "#23443D" },
-  { id: 4, name: "Energetic", emoji: "⚡", color: "#522743" },
-  { id: 5, name: "Focus", emoji: "🧠", color: "#373052" },
+  {
+    id: 1,
+    name: "Happy",
+    emoji: "😊",
+    color: "#49321D",
+  },
+  {
+    id: 2,
+    name: "Sad",
+    emoji: "🌧️",
+    color: "#243654",
+  },
+  {
+    id: 3,
+    name: "Calm",
+    emoji: "🌿",
+    color: "#23443D",
+  },
+  {
+    id: 4,
+    name: "Energetic",
+    emoji: "⚡",
+    color: "#522743",
+  },
+  {
+    id: 5,
+    name: "Focus",
+    emoji: "🧠",
+    color: "#373052",
+  },
 ];
 
 export default function HomeScreen() {
+  const openSettings = () => {
+    router.push("/settings");
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* App heading */}
-        <Text style={styles.title}>MoodTunes 🎵</Text>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerText}>
+            <Text style={styles.title}>
+              MoodTunes 🎵
+            </Text>
+          </View>
 
+          {/* Settings Button */}
+          <TouchableOpacity
+            style={styles.settingsButton}
+            onPress={openSettings}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Open Settings"
+          >
+            <Ionicons
+              name="settings-outline"
+              size={26}
+              color="#FFFFFF"
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Subtitle */}
         <Text style={styles.subtitle}>
           How are you feeling today?
         </Text>
 
+        {/* Mood Section */}
         <Text style={styles.sectionTitle}>
           Choose Your Mood
         </Text>
 
-        {/* Mood selection cards */}
+        {/* Mood Cards */}
         <View style={styles.grid}>
           {moods.map((mood) => (
             <TouchableOpacity
@@ -45,7 +103,7 @@ export default function HomeScreen() {
               ]}
               activeOpacity={0.8}
               onPress={() => {
-                // Mood filtering will be implemented later.
+                // Mood filtering will be added later.
               }}
             >
               <Text style={styles.emoji}>
@@ -59,9 +117,10 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        {/* Music Library button */}
+        {/* Music Library Button */}
         <TouchableOpacity
           style={styles.navigationButton}
+          activeOpacity={0.8}
           onPress={() => router.push("/library")}
         >
           <Text style={styles.navigationButtonText}>
@@ -69,9 +128,10 @@ export default function HomeScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* My Playlists button */}
+        {/* Playlists Button */}
         <TouchableOpacity
           style={styles.navigationButton}
+          activeOpacity={0.8}
           onPress={() => router.push("/playlists")}
         >
           <Text style={styles.navigationButtonText}>
@@ -94,17 +154,41 @@ const styles = StyleSheet.create({
     backgroundColor: "#11101D",
   },
 
+  scrollView: {
+    flex: 1,
+  },
+
   content: {
-    padding: 20,
-    paddingTop: 45,
+    paddingHorizontal: 20,
+    paddingTop: 35,
     paddingBottom: 40,
+  },
+
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  headerText: {
+    flex: 1,
   },
 
   title: {
     fontSize: 30,
     fontWeight: "bold",
     color: "#F7F3FF",
-    marginBottom: 10,
+  },
+
+  settingsButton: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "#29233D",
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 12,
   },
 
   subtitle: {
