@@ -14,10 +14,20 @@ export default function RootLayout() {
         <Stack
           screenOptions={{
             headerShown: false,
+            contentStyle: {
+              backgroundColor: "#11101D",
+            },
           }}
         >
-          <Stack.Screen name="(tabs)" />
+          {/* Main bottom navigation */}
+          <Stack.Screen
+            name="(tabs)"
+            options={{
+              headerShown: false,
+            }}
+          />
 
+          {/* Settings screen */}
           <Stack.Screen
             name="settings"
             options={{
@@ -27,12 +37,37 @@ export default function RootLayout() {
                 backgroundColor: "#11101D",
               },
               headerTintColor: "#FFFFFF",
+              headerBackVisible: true,
             }}
           />
 
-          <Stack.Screen name="song/[id]" />
+          {/* Song Details screen */}
+          <Stack.Screen
+            name="song/[id]"
+            options={{
+              headerShown: true,
+              title: "Song Details",
+              headerStyle: {
+                backgroundColor: "#11101D",
+              },
+              headerTintColor: "#FFFFFF",
+              headerBackVisible: true,
+            }}
+          />
 
-          <Stack.Screen name="player/[id]" />
+          {/* Music Player screen */}
+          <Stack.Screen
+            name="player/[id]"
+            options={{
+              headerShown: true,
+              title: "Music Player",
+              headerStyle: {
+                backgroundColor: "#11101D",
+              },
+              headerTintColor: "#FFFFFF",
+              headerBackVisible: true,
+            }}
+          />
         </Stack>
       </FavoritesProvider>
     </ThemeProvider>

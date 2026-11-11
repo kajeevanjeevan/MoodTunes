@@ -1,18 +1,19 @@
 
 import { Ionicons } from "@expo/vector-icons";
+import Slider from "@react-native-community/slider";
 import {
-    useAudioPlayer,
-    useAudioPlayerStatus,
+  useAudioPlayer,
+  useAudioPlayerStatus,
 } from "expo-audio";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { useFavorites } from "@/context/FavoritesContext";
@@ -42,8 +43,13 @@ export default function MusicPlayerScreen() {
   );
 
   const [isChanging, setIsChanging] = useState(false);
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [seekTime, setSeekTime] = useState(0);
 
   const changingRef = useRef(false);
+  const seekingRef = useRef(false);
+  const seekRequestRef = useRef(0);
+  const mountedRef = useRef(true);
 
   const song = songs[songIndex];
 
@@ -67,23 +73,31 @@ export default function MusicPlayerScreen() {
   const duration = status.duration || 0;
   const currentTime = status.currentTime || 0;
 
-  const progress =
-    duration > 0
-      ? Math.min(
-          Math.max((currentTime / duration) * 100, 0),
-          100
-        )
-      : 0;
+  const canSeek =
+    !!audioSource &&
+    status.isLoaded &&
+    duration > 0 &&
+    !isChanging;
+
+  const displayedTime = isSeeking
+    ? seekTime
+    : currentTime;
 
   useEffect(() => {
+    mountedRef.current = true;
+
     return () => {
+      mountedRef.current = false;
+      seekRequestRef.current += 1;
       player.pause();
     };
   }, [player]);
 
+  // Change to next or previous song
   const changeSong = (direction: number) => {
     if (
       changingRef.current ||
+      seekingRef.current ||
       !song ||
       songs.length === 0
     ) {
@@ -103,11 +117,11 @@ export default function MusicPlayerScreen() {
         audioSources[nextSong.id] ?? null;
 
       player.pause();
-
-      // Replace audio without changing the screen.
       player.replace(nextSource);
 
       setSongIndex(nextIndex);
+      setSeekTime(0);
+      setIsSeeking(false);
     } catch (error) {
       console.error("Cannot change song:", error);
     } finally {
@@ -116,23 +130,93 @@ export default function MusicPlayerScreen() {
     }
   };
 
-  const handlePlayPause = () => {
-    if (!audioSource || isChanging) {
+  // Play or pause audio
+  const handlePlayPause = async () => {
+    if (
+      !audioSource ||
+      isChanging ||
+      seekingRef.current ||
+      !status.isLoaded
+    ) {
       return;
     }
 
-    if (status.playing) {
-      player.pause();
-    } else {
-      if (
-        duration > 0 &&
-        currentTime >= duration
-      ) {
-        player.seekTo(0);
-      }
+    try {
+      if (status.playing) {
+        player.pause();
+      } else {
+        if (
+          duration > 0 &&
+          currentTime >= duration
+        ) {
+          await player.seekTo(0);
+        }
 
-      player.play();
+        player.play();
+      }
+    } catch (error) {
+      console.error(
+        "Cannot play or pause audio:",
+        error
+      );
     }
+  };
+
+  // User starts dragging
+  const handleSeekStart = () => {
+    if (!canSeek) {
+      return;
+    }
+
+    seekingRef.current = true;
+    setSeekTime(currentTime);
+    setIsSeeking(true);
+  };
+
+  // Update selected time while dragging
+  const handleSeekChange = (value: number) => {
+    if (!seekingRef.current) {
+      return;
+    }
+
+    setSeekTime(value);
+  };
+
+  // Jump to selected time
+  const handleSeekComplete = (value: number) => {
+    if (!canSeek || !seekingRef.current) {
+      seekingRef.current = false;
+      setIsSeeking(false);
+      return;
+    }
+
+    const newTime = Math.max(
+      0,
+      Math.min(value, duration)
+    );
+
+    setSeekTime(newTime);
+
+    const requestId = ++seekRequestRef.current;
+
+    // Keep the UI responsive while seeking.
+    void player
+      .seekTo(newTime)
+      .catch((error) => {
+        console.error(
+          "Cannot seek audio:",
+          error
+        );
+      })
+      .finally(() => {
+        if (
+          mountedRef.current &&
+          requestId === seekRequestRef.current
+        ) {
+          seekingRef.current = false;
+          setIsSeeking(false);
+        }
+      });
   };
 
   if (!song) {
@@ -160,24 +244,10 @@ export default function MusicPlayerScreen() {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
     >
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => {
-            player.pause();
-            router.back();
-          }}
-          accessibilityLabel="Go back"
-        >
-          <Ionicons
-            name="chevron-back"
-            size={23}
-            color="#FFFFFF"
-          />
-        </TouchableOpacity>
-
         <Text style={styles.headerTitle}>
           MOODTUNES PLAYER
         </Text>
@@ -210,7 +280,7 @@ export default function MusicPlayerScreen() {
         </Text>
       </View>
 
-      {/* Song Information */}
+      {/* Song Details */}
       <Text style={styles.title}>
         {song.title}
       </Text>
@@ -223,34 +293,60 @@ export default function MusicPlayerScreen() {
         {song.mood} Mood
       </Text>
 
-      {/* Progress */}
+      {/* Draggable Seek Bar */}
       <View style={styles.progressContainer}>
-        <View style={styles.progressBackground}>
-          <View
-            style={[
-              styles.progressFill,
-              { width: `${progress}%` },
-            ]}
-          />
-        </View>
+        <Slider
+          style={styles.slider}
+          minimumValue={0}
+          maximumValue={
+            duration > 0 ? duration : 1
+          }
+          value={Math.min(
+            Math.max(displayedTime, 0),
+            duration > 0 ? duration : 1
+          )}
+          minimumTrackTintColor="#22C55E"
+          maximumTrackTintColor="#40516A"
+          thumbTintColor="#86EFAC"
+          disabled={!canSeek || isSeeking}
+          onSlidingStart={handleSeekStart}
+          onValueChange={handleSeekChange}
+          onSlidingComplete={handleSeekComplete}
+        />
 
         <View style={styles.timeRow}>
           <Text style={styles.timeText}>
-            {formatTime(currentTime)}
+            {formatTime(displayedTime)}
           </Text>
 
           <Text style={styles.timeText}>
             {formatTime(duration)}
           </Text>
         </View>
+
+        {isSeeking && (
+          <View style={styles.seekingRow}>
+            <ActivityIndicator
+              size="small"
+              color="#86EFAC"
+            />
+            <Text style={styles.seekingText}>
+              Seeking audio...
+            </Text>
+          </View>
+        )}
       </View>
 
-      {/* Compact Controls */}
+      {/* Music Controls */}
       <View style={styles.controls}>
         <TouchableOpacity
-          style={styles.skipButton}
+          style={[
+            styles.skipButton,
+            (isChanging || isSeeking) &&
+              styles.disabledButton,
+          ]}
           onPress={() => changeSong(-1)}
-          disabled={isChanging}
+          disabled={isChanging || isSeeking}
           accessibilityLabel="Previous song"
         >
           <Ionicons
@@ -263,11 +359,20 @@ export default function MusicPlayerScreen() {
         <TouchableOpacity
           style={[
             styles.playButton,
-            (!audioSource || isChanging) &&
-              styles.disabledButton,
+            (
+              !audioSource ||
+              isChanging ||
+              isSeeking ||
+              !status.isLoaded
+            ) && styles.disabledButton,
           ]}
           onPress={handlePlayPause}
-          disabled={!audioSource || isChanging}
+          disabled={
+            !audioSource ||
+            isChanging ||
+            isSeeking ||
+            !status.isLoaded
+          }
           accessibilityLabel={
             status.playing ? "Pause" : "Play"
           }
@@ -286,9 +391,13 @@ export default function MusicPlayerScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.skipButton}
+          style={[
+            styles.skipButton,
+            (isChanging || isSeeking) &&
+              styles.disabledButton,
+          ]}
           onPress={() => changeSong(1)}
-          disabled={isChanging}
+          disabled={isChanging || isSeeking}
           accessibilityLabel="Next song"
         >
           <Ionicons
@@ -335,7 +444,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     alignItems: "center",
     paddingHorizontal: 24,
-    paddingTop: 45,
+    paddingTop: 25,
     paddingBottom: 35,
   },
 
@@ -403,27 +512,32 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
 
-  progressBackground: {
-    height: 6,
-    backgroundColor: "#40516A",
-    borderRadius: 10,
-    overflow: "hidden",
-  },
-
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#22C55E",
-    borderRadius: 10,
+  slider: {
+    width: "100%",
+    height: 40,
   },
 
   timeRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 10,
+    marginTop: 2,
   },
 
   timeText: {
     color: "#94A3B8",
+    fontSize: 12,
+  },
+
+  seekingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 12,
+  },
+
+  seekingText: {
+    color: "#86EFAC",
     fontSize: 12,
   },
 
