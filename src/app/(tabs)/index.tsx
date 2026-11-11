@@ -45,8 +45,19 @@ const moods = [
 ];
 
 export default function HomeScreen() {
+  // Open Settings screen
   const openSettings = () => {
     router.push("/settings");
+  };
+
+  // Open Library with selected mood
+  const openMoodSongs = (moodName: string) => {
+    router.push({
+      pathname: "/library",
+      params: {
+        mood: moodName,
+      },
+    });
   };
 
   return (
@@ -60,13 +71,11 @@ export default function HomeScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerText}>
-            <Text style={styles.title}>
-              MoodTunes 🎵
-            </Text>
-          </View>
+          <Text style={styles.title}>
+            MoodTunes 🎵
+          </Text>
 
-          {/* Settings Button */}
+          {/* Settings icon */}
           <TouchableOpacity
             style={styles.settingsButton}
             onPress={openSettings}
@@ -82,7 +91,6 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Subtitle */}
         <Text style={styles.subtitle}>
           How are you feeling today?
         </Text>
@@ -102,9 +110,11 @@ export default function HomeScreen() {
                 { backgroundColor: mood.color },
               ]}
               activeOpacity={0.8}
-              onPress={() => {
-                // Mood filtering will be added later.
-              }}
+              onPress={() =>
+                openMoodSongs(mood.name)
+              }
+              accessibilityRole="button"
+              accessibilityLabel={`Show ${mood.name} songs`}
             >
               <Text style={styles.emoji}>
                 {mood.emoji}
@@ -117,22 +127,26 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        {/* Music Library Button */}
+        {/* Open Music Library */}
         <TouchableOpacity
           style={styles.navigationButton}
           activeOpacity={0.8}
-          onPress={() => router.push("/library")}
+          onPress={() =>
+            router.push("/library")
+          }
         >
           <Text style={styles.navigationButtonText}>
             Open Music Library 🎶
           </Text>
         </TouchableOpacity>
 
-        {/* Playlists Button */}
+        {/* Open Playlists */}
         <TouchableOpacity
           style={styles.navigationButton}
           activeOpacity={0.8}
-          onPress={() => router.push("/playlists")}
+          onPress={() =>
+            router.push("/playlists")
+          }
         >
           <Text style={styles.navigationButtonText}>
             Open My Playlists 🎼
@@ -171,14 +185,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  headerText: {
-    flex: 1,
-  },
-
   title: {
     fontSize: 30,
     fontWeight: "bold",
     color: "#F7F3FF",
+    flexShrink: 1,
   },
 
   settingsButton: {
