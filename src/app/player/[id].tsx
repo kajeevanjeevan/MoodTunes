@@ -17,6 +17,7 @@ import {
 } from "react-native";
 
 import { useFavorites } from "@/context/FavoritesContext";
+import { useListeningHistory } from "@/context/ListeningHistoryContext";
 import { audioSources } from "@/data/audio";
 import { songs } from "@/data/songs";
 
@@ -51,9 +52,14 @@ export default function MusicPlayerScreen() {
   const seekRequestRef = useRef(0);
   const mountedRef = useRef(true);
 
+  // Listening history tracking
+  const pendingPlayRef = useRef<number | null>(null);
+  const wasPlayingRef = useRef(false);
+
   const song = songs[songIndex];
 
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { recordPlay } = useListeningHistory();
 
   const initialSource =
     audioSources[
@@ -83,12 +89,28 @@ export default function MusicPlayerScreen() {
     ? seekTime
     : currentTime;
 
+  // Record a play only after playback actually starts
+  useEffect(() => {
+    if (status.playing && !wasPlayingRef.current) {
+      const songId = pendingPlayRef.current;
+
+      if (songId !== null) {
+        pendingPlayRef.current = null;
+        void recordPlay(songId);
+      }
+    }
+
+    wasPlayingRef.current = status.playing;
+  }, [status.playing, recordPlay]);
+
+  // Clean up when leaving the player
   useEffect(() => {
     mountedRef.current = true;
 
     return () => {
       mountedRef.current = false;
       seekRequestRef.current += 1;
+      pendingPlayRef.current = null;
       player.pause();
     };
   }, [player]);
@@ -116,6 +138,9 @@ export default function MusicPlayerScreen() {
       const nextSource =
         audioSources[nextSong.id] ?? null;
 
+      // Cancel any pending play for the previous song
+      pendingPlayRef.current = null;
+
       player.pause();
       player.replace(nextSource);
 
@@ -134,6 +159,7 @@ export default function MusicPlayerScreen() {
   const handlePlayPause = async () => {
     if (
       !audioSource ||
+      !song ||
       isChanging ||
       seekingRef.current ||
       !status.isLoaded
@@ -143,8 +169,10 @@ export default function MusicPlayerScreen() {
 
     try {
       if (status.playing) {
+        pendingPlayRef.current = null;
         player.pause();
       } else {
+        // Restart if the song has finished
         if (
           duration > 0 &&
           currentTime >= duration
@@ -152,9 +180,14 @@ export default function MusicPlayerScreen() {
           await player.seekTo(0);
         }
 
+        // Remember which song is about to start
+        pendingPlayRef.current = song.id;
+
         player.play();
       }
     } catch (error) {
+      pendingPlayRef.current = null;
+
       console.error(
         "Cannot play or pause audio:",
         error
@@ -162,7 +195,7 @@ export default function MusicPlayerScreen() {
     }
   };
 
-  // User starts dragging
+  // User starts dragging the seek bar
   const handleSeekStart = () => {
     if (!canSeek) {
       return;
@@ -199,7 +232,6 @@ export default function MusicPlayerScreen() {
 
     const requestId = ++seekRequestRef.current;
 
-    // Keep the UI responsive while seeking.
     void player
       .seekTo(newTime)
       .catch((error) => {
@@ -330,6 +362,7 @@ export default function MusicPlayerScreen() {
               size="small"
               color="#86EFAC"
             />
+
             <Text style={styles.seekingText}>
               Seeking audio...
             </Text>

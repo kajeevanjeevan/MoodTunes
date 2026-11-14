@@ -1,5 +1,10 @@
 
+import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
 import {
+  Alert,
+  Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,30 +16,100 @@ import { useFavorites } from "@/context/FavoritesContext";
 import { songs } from "@/data/songs";
 
 export default function FavoritesScreen() {
-  const { favorites, toggleFavorite } = useFavorites();
+  const {
+    favorites,
+    toggleFavorite,
+    clearFavorites,
+  } = useFavorites();
+
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const favoriteSongs = songs.filter((song) =>
     favorites.includes(song.id)
   );
 
+  const handleClearAll = () => {
+    if (favoriteSongs.length === 0) {
+      return;
+    }
+
+    // Native confirmation on Android
+    if (Platform.OS !== "web") {
+      Alert.alert(
+        "Clear All Favorites",
+        "Are you sure you want to remove all songs from Favorites?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Clear All",
+            style: "destructive",
+            onPress: clearFavorites,
+          },
+        ]
+      );
+    } else {
+      // Custom confirmation for web
+      setShowConfirm(true);
+    }
+  };
+
+  const confirmClearAll = () => {
+    clearFavorites();
+    setShowConfirm(false);
+  };
+
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Page Header */}
         <Text style={styles.heading}>
-          My Favorites ❤️
+          My Favorites
         </Text>
 
         <Text style={styles.subtitle}>
           Your favorite offline songs
         </Text>
 
-        <Text style={styles.sectionTitle}>
-          Favorite Songs ({favoriteSongs.length})
-        </Text>
+        {/* Section Header */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            Favorite Songs ({favoriteSongs.length})
+          </Text>
 
+          {favoriteSongs.length > 0 && (
+            <TouchableOpacity
+              style={styles.clearButton}
+              onPress={handleClearAll}
+              accessibilityRole="button"
+              accessibilityLabel="Clear all favorites"
+            >
+              <Ionicons
+                name="trash-outline"
+                size={16}
+                color="#FB7185"
+              />
+
+              <Text style={styles.clearText}>
+                Clear All
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Favorites List */}
         {favoriteSongs.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyEmoji}>🤍</Text>
+            <Ionicons
+              name="heart-outline"
+              size={56}
+              color="#C6A8FF"
+            />
 
             <Text style={styles.emptyTitle}>
               No favorite songs yet
@@ -47,10 +122,17 @@ export default function FavoritesScreen() {
           </View>
         ) : (
           favoriteSongs.map((song) => (
-            <View key={song.id} style={styles.songCard}>
-              <Text style={styles.songEmoji}>
-                {song.emoji}
-              </Text>
+            <View
+              key={song.id}
+              style={styles.songCard}
+            >
+              <View style={styles.songIcon}>
+                <Ionicons
+                  name="musical-note-outline"
+                  size={22}
+                  color="#C6A8FF"
+                />
+              </View>
 
               <View style={styles.songInfo}>
                 <Text style={styles.songTitle}>
@@ -67,18 +149,65 @@ export default function FavoritesScreen() {
               </View>
 
               <TouchableOpacity
+                style={styles.heartButton}
                 onPress={() => toggleFavorite(song.id)}
                 accessibilityRole="button"
                 accessibilityLabel={
                   `Remove ${song.title} from favorites`
                 }
               >
-                <Text style={styles.heart}>❤️</Text>
+                <Ionicons
+                  name="heart"
+                  size={23}
+                  color="#FB7185"
+                />
               </TouchableOpacity>
             </View>
           ))
         )}
       </ScrollView>
+
+      {/* Web Confirmation Dialog */}
+      <Modal
+        visible={showConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowConfirm(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>
+              Clear All Favorites?
+            </Text>
+
+            <Text style={styles.modalDescription}>
+              This will remove every song from your
+              Favorites list. Your music files will
+              not be deleted.
+            </Text>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setShowConfirm(false)}
+              >
+                <Text style={styles.cancelText}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={confirmClearAll}
+              >
+                <Text style={styles.confirmText}>
+                  Clear All
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -108,25 +237,54 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
 
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+    gap: 10,
+  },
+
   sectionTitle: {
     color: "#FFFFFF",
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 20,
+    flexShrink: 1,
+  },
+
+  clearButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#392333",
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+  },
+
+  clearText: {
+    color: "#FB7185",
+    fontSize: 13,
+    fontWeight: "600",
   },
 
   songCard: {
     backgroundColor: "#211D30",
     borderRadius: 16,
-    padding: 16,
+    padding: 15,
     marginBottom: 12,
     flexDirection: "row",
     alignItems: "center",
   },
 
-  songEmoji: {
-    fontSize: 30,
-    marginRight: 14,
+  songIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#332A44",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 13,
   },
 
   songInfo: {
@@ -141,6 +299,7 @@ const styles = StyleSheet.create({
 
   songArtist: {
     color: "#BEB6D3",
+    fontSize: 13,
     marginTop: 4,
   },
 
@@ -150,9 +309,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  heart: {
-    fontSize: 26,
-    padding: 6,
+  heartButton: {
+    padding: 8,
   },
 
   emptyContainer: {
@@ -161,15 +319,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
 
-  emptyEmoji: {
-    fontSize: 55,
-    marginBottom: 18,
-  },
-
   emptyTitle: {
     color: "#FFFFFF",
     fontSize: 19,
     fontWeight: "bold",
+    marginTop: 18,
     marginBottom: 10,
   },
 
@@ -178,5 +332,65 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     lineHeight: 22,
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+
+  modalCard: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: "#211D30",
+    padding: 24,
+    borderRadius: 20,
+  },
+
+  modalTitle: {
+    color: "#FFFFFF",
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 12,
+  },
+
+  modalDescription: {
+    color: "#BEB6D3",
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+  },
+
+  cancelButton: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: "#353044",
+  },
+
+  cancelText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+  },
+
+  confirmButton: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: "#9F304C",
+  },
+
+  confirmText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
 });

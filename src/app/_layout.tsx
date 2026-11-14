@@ -6,69 +6,86 @@ import {
 } from "expo-router";
 
 import { FavoritesProvider } from "@/context/FavoritesContext";
+import { ListeningHistoryProvider } from "@/context/ListeningHistoryContext";
+
+// MoodTunes dark purple theme
+const MoodTunesTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: "#11101D",
+    card: "#11101D",
+    border: "#29253B",
+    text: "#FFFFFF",
+    primary: "#C6A8FF",
+  },
+};
 
 export default function RootLayout() {
   return (
-    <ThemeProvider value={DarkTheme}>
+    <ThemeProvider value={MoodTunesTheme}>
       <FavoritesProvider>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: {
-              backgroundColor: "#11101D",
-            },
-          }}
-        >
-          {/* Main bottom navigation */}
-          <Stack.Screen
-            name="(tabs)"
-            options={{
+        <ListeningHistoryProvider>
+          <Stack
+            screenOptions={{
               headerShown: false,
-            }}
-          />
-
-          {/* Settings screen */}
-          <Stack.Screen
-            name="settings"
-            options={{
-              headerShown: true,
-              title: "Settings",
-              headerStyle: {
+              animation: "fade",
+              contentStyle: {
                 backgroundColor: "#11101D",
               },
-              headerTintColor: "#FFFFFF",
-              headerBackVisible: true,
             }}
-          />
+          >
+            {/* Main bottom tabs */}
+            <Stack.Screen
+              name="(tabs)"
+              options={{
+                headerShown: false,
+              }}
+            />
 
-          {/* Song Details screen */}
-          <Stack.Screen
-            name="song/[id]"
-            options={{
-              headerShown: true,
-              title: "Song Details",
-              headerStyle: {
-                backgroundColor: "#11101D",
-              },
-              headerTintColor: "#FFFFFF",
-              headerBackVisible: true,
-            }}
-          />
+            {/* Settings screen */}
+            <Stack.Screen
+              name="settings"
+              options={{
+                headerShown: true,
+                title: "Settings",
+                headerStyle: {
+                  backgroundColor: "#11101D",
+                },
+                headerTintColor: "#FFFFFF",
+                headerBackVisible: true,
+              }}
+            />
 
-          {/* Music Player screen */}
-          <Stack.Screen
-            name="player/[id]"
-            options={{
-              headerShown: true,
-              title: "Music Player",
-              headerStyle: {
-                backgroundColor: "#11101D",
-              },
-              headerTintColor: "#FFFFFF",
-              headerBackVisible: true,
-            }}
-          />
-        </Stack>
+            {/* Song Details screen */}
+            <Stack.Screen
+              name="song/[id]"
+              options={{
+                headerShown: true,
+                title: "Song Details",
+                headerStyle: {
+                  backgroundColor: "#11101D",
+                },
+                headerTintColor: "#FFFFFF",
+                headerBackVisible: true,
+              }}
+            />
+
+            {/* Music Player screen */}
+            <Stack.Screen
+              name="player/[id]"
+              options={{
+                headerShown: true,
+                title: "Music Player",
+                headerStyle: {
+                  backgroundColor: "#11101D",
+                },
+                headerTintColor: "#FFFFFF",
+                headerBackVisible: true,
+              }}
+            />
+          </Stack>
+        </ListeningHistoryProvider>
       </FavoritesProvider>
     </ThemeProvider>
   );

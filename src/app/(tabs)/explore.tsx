@@ -1,180 +1,478 @@
-import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
-import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ExternalLink } from '@/components/external-link';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { useMemo } from "react";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
-export default function TabTwoScreen() {
-  const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
+import { useListeningHistory } from "@/context/ListeningHistoryContext";
+import { songs } from "@/data/songs";
+
+export default function ExploreScreen() {
+  const {
+    playCounts,
+    recentPlays,
+    totalPlays,
+    isLoaded,
+  } = useListeningHistory();
+
+  // Sort songs by number of plays
+  const mostPlayedSongs = useMemo(() => {
+    return songs
+      .filter((song) => (playCounts[song.id] ?? 0) > 0)
+      .sort(
+        (a, b) =>
+          (playCounts[b.id] ?? 0) -
+          (playCounts[a.id] ?? 0)
+      );
+  }, [playCounts]);
+
+  // Show recently played songs without duplicates
+  const recentlyPlayedSongs = useMemo(() => {
+    const seen = new Set<number>();
+
+    return recentPlays
+      .filter((entry) => {
+        if (seen.has(entry.songId)) {
+          return false;
+        }
+
+        seen.add(entry.songId);
+        return true;
+      })
+      .map((entry) => {
+        const song = songs.find(
+          (item) => item.id === entry.songId
+        );
+
+        return song
+          ? {
+              ...song,
+              playedAt: entry.playedAt,
+            }
+          : null;
+      })
+      .filter(
+        (
+          song
+        ): song is (typeof songs)[number] & {
+          playedAt: number;
+        } => song !== null
+      )
+      .slice(0, 10);
+  }, [recentPlays]);
+
+  const uniqueSongsPlayed = mostPlayedSongs.length;
+
+  const openSong = (songId: number) => {
+    router.push({
+      pathname: "/song/[id]",
+      params: {
+        id: String(songId),
+      },
+    });
   };
-  const theme = useTheme();
 
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: Spacing.six,
-      paddingBottom: Spacing.four,
-    },
-  });
+  const formatRecentDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+
+    if (Number.isNaN(date.getTime())) {
+      return "Recently";
+    }
+
+    const today = new Date();
+
+    if (date.toDateString() === today.toDateString()) {
+      return "Today";
+    }
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (
+      date.toDateString() === yesterday.toDateString()
+    ) {
+      return "Yesterday";
+    }
+
+    return date.toLocaleDateString();
+  };
+
+  if (!isLoaded) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>
+          Loading listening history...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="subtitle">Explore</ThemedText>
-          <ThemedText style={styles.centerText} themeColor="textSecondary">
-            This starter app includes example{'\n'}code to help you get started.
-          </ThemedText>
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.heading}>
+            Your Music
+          </Text>
 
-          <ExternalLink href="https://docs.expo.dev" asChild>
-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <ThemedView type="backgroundElement" style={styles.linkButton}>
-                <ThemedText type="link">Expo documentation</ThemedText>
-                <SymbolView
-                  tintColor={theme.text}
-                  name={{ ios: 'arrow.up.right.square', android: 'link', web: 'link' }}
-                  size={12}
-                />
-              </ThemedView>
-            </Pressable>
-          </ExternalLink>
-        </ThemedView>
+          <Text style={styles.subtitle}>
+            Your listening activity
+          </Text>
+        </View>
 
-        <ThemedView style={styles.sectionsWrapper}>
-          <Collapsible title="File-based routing">
-            <ThemedText type="small">
-              This app has two screens: <ThemedText type="code">src/app/index.tsx</ThemedText> and{' '}
-              <ThemedText type="code">src/app/explore.tsx</ThemedText>
-            </ThemedText>
-            <ThemedText type="small">
-              The layout file in <ThemedText type="code">src/app/_layout.tsx</ThemedText> sets up
-              the tab navigator.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/router/introduction">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+        <View style={styles.headerIcon}>
+          <Ionicons
+            name="headset-outline"
+            size={25}
+            color="#C6A8FF"
+          />
+        </View>
+      </View>
 
-          <Collapsible title="Android, iOS, and web support">
-            <ThemedView type="backgroundElement" style={styles.collapsibleContent}>
-              <ThemedText type="small">
-                You can open this project on Android, iOS, and the web. To open the web version,
-                press <ThemedText type="smallBold">w</ThemedText> in the terminal running this
-                project.
-              </ThemedText>
-              <Image
-                source={require('@/assets/images/tutorial-web.png')}
-                style={styles.imageTutorial}
+      {/* Statistics */}
+      <View style={styles.statsRow}>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>
+            Total Plays
+          </Text>
+
+          <Text style={styles.statNumber}>
+            {totalPlays}
+          </Text>
+        </View>
+
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>
+            Songs Played
+          </Text>
+
+          <Text style={styles.statNumber}>
+            {uniqueSongsPlayed}
+          </Text>
+        </View>
+      </View>
+
+      {/* Most Played */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>
+          Most Played
+        </Text>
+
+        <Ionicons
+          name="trending-up-outline"
+          size={19}
+          color="#C6A8FF"
+        />
+      </View>
+
+      {mostPlayedSongs.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>
+            No listening activity yet
+          </Text>
+
+          <Text style={styles.emptyDescription}>
+            Play a song from your library to see
+            your most played tracks here.
+          </Text>
+        </View>
+      ) : (
+        mostPlayedSongs.map((song, index) => (
+          <Pressable
+            key={song.id}
+            style={styles.songRow}
+            onPress={() => openSong(song.id)}
+          >
+            <Text style={styles.rank}>
+              {String(index + 1).padStart(2, "0")}
+            </Text>
+
+            <View style={styles.songDetails}>
+              <Text style={styles.songTitle}>
+                {song.title}
+              </Text>
+
+              <Text style={styles.songArtist}>
+                {song.artist}
+              </Text>
+            </View>
+
+            <View style={styles.playCountContainer}>
+              <Text style={styles.playCount}>
+                {playCounts[song.id] ?? 0} plays
+              </Text>
+            </View>
+
+            <Ionicons
+              name="chevron-forward"
+              size={17}
+              color="#8E819F"
+            />
+          </Pressable>
+        ))
+      )}
+
+      {/* Recently Played */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>
+          Recently Played
+        </Text>
+
+        <Ionicons
+          name="time-outline"
+          size={19}
+          color="#C6A8FF"
+        />
+      </View>
+
+      {recentlyPlayedSongs.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>
+            No recent songs
+          </Text>
+
+          <Text style={styles.emptyDescription}>
+            Your recently listened songs will
+            appear here automatically.
+          </Text>
+        </View>
+      ) : (
+        recentlyPlayedSongs.map((song) => (
+          <Pressable
+            key={song.id}
+            style={styles.recentRow}
+            onPress={() => openSong(song.id)}
+          >
+            <View style={styles.recentIcon}>
+              <Ionicons
+                name="musical-note-outline"
+                size={19}
+                color="#C6A8FF"
               />
-            </ThemedView>
-          </Collapsible>
+            </View>
 
-          <Collapsible title="Images">
-            <ThemedText type="small">
-              For static images, you can use the <ThemedText type="code">@2x</ThemedText> and{' '}
-              <ThemedText type="code">@3x</ThemedText> suffixes to provide files for different
-              screen densities.
-            </ThemedText>
-            <Image source={require('@/assets/images/react-logo.png')} style={styles.imageReact} />
-            <ExternalLink href="https://reactnative.dev/docs/images">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+            <View style={styles.songDetails}>
+              <Text style={styles.songTitle}>
+                {song.title}
+              </Text>
 
-          <Collapsible title="Light and dark mode components">
-            <ThemedText type="small">
-              This template has light and dark mode support. The{' '}
-              <ThemedText type="code">useColorScheme()</ThemedText> hook lets you inspect what the
-              user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+              <Text style={styles.songArtist}>
+                {song.artist}
+              </Text>
+            </View>
 
-          <Collapsible title="Animations">
-            <ThemedText type="small">
-              This template includes an example of an animated component. The{' '}
-              <ThemedText type="code">src/components/ui/collapsible.tsx</ThemedText> component uses
-              the powerful <ThemedText type="code">react-native-reanimated</ThemedText> library to
-              animate opening this hint.
-            </ThemedText>
-          </Collapsible>
-        </ThemedView>
-        {Platform.OS === 'web' && <WebBadge />}
-      </ThemedView>
+            <Text style={styles.recentTime}>
+              {formatRecentDate(song.playedAt)}
+            </Text>
+          </Pressable>
+        ))
+      )}
+
+      {/* Footer */}
+      <Text style={styles.footer}>
+        Listening history is saved offline
+      </Text>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
   container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
+    flex: 1,
+    backgroundColor: "#11101D",
   },
-  titleContainer: {
-    gap: Spacing.three,
-    alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.six,
+
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 35,
+    paddingBottom: 50,
   },
-  centerText: {
-    textAlign: 'center',
+
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: "#11101D",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  pressed: {
-    opacity: 0.7,
+
+  loadingText: {
+    color: "#BEB6D3",
+    fontSize: 15,
   },
-  linkButton: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
-    justifyContent: 'center',
-    gap: Spacing.one,
-    alignItems: 'center',
+
+  // Header
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 28,
   },
-  sectionsWrapper: {
-    gap: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
+
+  heading: {
+    color: "#FFFFFF",
+    fontSize: 28,
+    fontWeight: "bold",
   },
-  collapsibleContent: {
-    alignItems: 'center',
+
+  subtitle: {
+    color: "#AFA7C1",
+    fontSize: 14,
+    marginTop: 6,
   },
-  imageTutorial: {
-    width: '100%',
-    aspectRatio: 296 / 171,
-    borderRadius: Spacing.three,
-    marginTop: Spacing.two,
+
+  headerIcon: {
+    width: 45,
+    height: 45,
+    borderRadius: 14,
+    backgroundColor: "#302444",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  imageReact: {
-    width: 100,
-    height: 100,
-    alignSelf: 'center',
+
+  // Statistics
+  statsRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 32,
+  },
+
+  statCard: {
+    flex: 1,
+    backgroundColor: "#302444",
+    padding: 18,
+    borderRadius: 16,
+  },
+
+  statLabel: {
+    color: "#C9B7E6",
+    fontSize: 13,
+  },
+
+  statNumber: {
+    color: "#FFFFFF",
+    fontSize: 30,
+    fontWeight: "bold",
+    marginTop: 10,
+  },
+
+  // Sections
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+    marginTop: 8,
+  },
+
+  sectionTitle: {
+    color: "#FFFFFF",
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+
+  // Most Played
+  songRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#292438",
+  },
+
+  rank: {
+    color: "#C6A8FF",
+    fontSize: 15,
+    fontWeight: "bold",
+    width: 34,
+  },
+
+  songDetails: {
+    flex: 1,
+    marginRight: 8,
+  },
+
+  songTitle: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+
+  songArtist: {
+    color: "#AFA7C1",
+    fontSize: 12,
+    marginTop: 5,
+  },
+
+  playCountContainer: {
+    marginRight: 8,
+  },
+
+  playCount: {
+    color: "#C6A8FF",
+    fontSize: 12,
+  },
+
+  // Recently Played
+  recentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#292438",
+  },
+
+  recentIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: "#302444",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+
+  recentTime: {
+    color: "#AFA7C1",
+    fontSize: 12,
+  },
+
+  // Empty state
+  emptyCard: {
+    backgroundColor: "#211D30",
+    padding: 20,
+    borderRadius: 14,
+    marginBottom: 25,
+  },
+
+  emptyTitle: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+
+  emptyDescription: {
+    color: "#AFA7C1",
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 8,
+  },
+
+  // Footer
+  footer: {
+    color: "#827A99",
+    fontSize: 12,
+    textAlign: "center",
+    marginTop: 35,
   },
 });

@@ -13,6 +13,7 @@ type FavoritesContextType = {
   favorites: number[];
   toggleFavorite: (id: number) => void;
   isFavorite: (id: number) => boolean;
+  clearFavorites: () => void;
 };
 
 const STORAGE_KEY = "@moodtunes_favorites";
@@ -29,7 +30,7 @@ export function FavoritesProvider({
   const [favorites, setFavorites] = useState<number[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load previously saved favorites when the app starts.
+  // Load saved favorites when the app starts
   useEffect(() => {
     const loadFavorites = async () => {
       try {
@@ -57,10 +58,10 @@ export function FavoritesProvider({
       }
     };
 
-    loadFavorites();
+    void loadFavorites();
   }, []);
 
-  // Save favorites whenever they change after loading.
+  // Save favorites whenever they change
   useEffect(() => {
     if (!isLoaded) {
       return;
@@ -77,9 +78,10 @@ export function FavoritesProvider({
       }
     };
 
-    saveFavorites();
+    void saveFavorites();
   }, [favorites, isLoaded]);
 
+  // Add or remove one favorite song
   const toggleFavorite = (id: number) => {
     if (!isLoaded) {
       return;
@@ -92,8 +94,18 @@ export function FavoritesProvider({
     );
   };
 
+  // Check whether a song is a favorite
   const isFavorite = (id: number) => {
     return favorites.includes(id);
+  };
+
+  // Remove all favorite songs
+  const clearFavorites = () => {
+    if (!isLoaded) {
+      return;
+    }
+
+    setFavorites([]);
   };
 
   return (
@@ -102,6 +114,7 @@ export function FavoritesProvider({
         favorites,
         toggleFavorite,
         isFavorite,
+        clearFavorites,
       }}
     >
       {children}
