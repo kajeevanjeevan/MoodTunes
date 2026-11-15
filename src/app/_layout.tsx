@@ -6,9 +6,10 @@ import {
 } from "expo-router";
 
 import { FavoritesProvider } from "@/context/FavoritesContext";
+import { ImportedSongsProvider } from "@/context/ImportedSongsContext";
 import { ListeningHistoryProvider } from "@/context/ListeningHistoryContext";
+import { MusicPlayerProvider } from "@/context/MusicPlayerContext";
 
-// MoodTunes dark purple theme
 const MoodTunesTheme = {
   ...DarkTheme,
   colors: {
@@ -26,65 +27,65 @@ export default function RootLayout() {
     <ThemeProvider value={MoodTunesTheme}>
       <FavoritesProvider>
         <ListeningHistoryProvider>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              animation: "fade",
-              contentStyle: {
-                backgroundColor: "#11101D",
-              },
-            }}
-          >
-            {/* Main bottom tabs */}
-            <Stack.Screen
-              name="(tabs)"
-              options={{
-                headerShown: false,
-              }}
-            />
+          <ImportedSongsProvider>
+            <MusicPlayerProvider>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  animation: "fade",
+                  contentStyle: {
+                    backgroundColor: "#11101D",
+                  },
+                }}
+              >
+                <Stack.Screen
+                  name="(tabs)"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
 
-            {/* Settings screen */}
-            <Stack.Screen
-              name="settings"
-              options={{
-                headerShown: true,
-                title: "Settings",
-                headerStyle: {
-                  backgroundColor: "#11101D",
-                },
-                headerTintColor: "#FFFFFF",
-                headerBackVisible: true,
-              }}
-            />
+                <Stack.Screen
+                  name="settings"
+                  options={{
+                    headerShown: true,
+                    title: "Settings",
+                    headerStyle: {
+                      backgroundColor: "#11101D",
+                    },
+                    headerTintColor: "#FFFFFF",
+                    headerBackVisible: true,
+                  }}
+                />
 
-            {/* Song Details screen */}
-            <Stack.Screen
-              name="song/[id]"
-              options={{
-                headerShown: true,
-                title: "Song Details",
-                headerStyle: {
-                  backgroundColor: "#11101D",
-                },
-                headerTintColor: "#FFFFFF",
-                headerBackVisible: true,
-              }}
-            />
+                <Stack.Screen
+                  name="song/[id]"
+                  options={{
+                    headerShown: true,
+                    title: "Song Details",
+                    headerStyle: {
+                      backgroundColor: "#11101D",
+                    },
+                    headerTintColor: "#FFFFFF",
+                    headerBackVisible: true,
+                  }}
+                />
 
-            {/* Music Player screen */}
-            <Stack.Screen
-              name="player/[id]"
-              options={{
-                headerShown: true,
-                title: "Music Player",
-                headerStyle: {
-                  backgroundColor: "#11101D",
-                },
-                headerTintColor: "#FFFFFF",
-                headerBackVisible: true,
-              }}
-            />
-          </Stack>
+                <Stack.Screen
+                  name="player/[id]"
+                  options={{
+                    headerShown: true,
+                    title: "Music Player",
+                    headerStyle: {
+                      backgroundColor: "#11101D",
+                    },
+                    headerTintColor: "#FFFFFF",
+                    headerBackVisible: true,
+                  }}
+                />
+              </Stack>
+            </MusicPlayerProvider>
+          </ImportedSongsProvider>
         </ListeningHistoryProvider>
       </FavoritesProvider>
     </ThemeProvider>

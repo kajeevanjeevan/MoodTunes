@@ -1,12 +1,9 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
-import {
-  useAudioPlayer,
-  useAudioPlayerStatus,
-} from "expo-audio";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
+
 import {
   ActivityIndicator,
   ScrollView,
@@ -17,9 +14,8 @@ import {
 } from "react-native";
 
 import { useFavorites } from "@/context/FavoritesContext";
-import { useListeningHistory } from "@/context/ListeningHistoryContext";
-import { audioSources } from "@/data/audio";
-import { songs } from "@/data/songs";
+import { useImportedSongs } from "@/context/ImportedSongsContext";
+import { useMusicPlayer } from "@/context/MusicPlayerContext";
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) {
@@ -35,53 +31,66 @@ function formatTime(seconds: number): string {
 export default function MusicPlayerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const initialIndex = songs.findIndex(
-    (item) => item.id === Number(id)
-  );
+  const {
+    currentSong,
+    currentSongId,
+    playing,
+    isLoaded,
+    isChanging,
+    duration,
+    currentTime,
+    error,
+    hasAudio,
+    selectSong,
+    togglePlayback,
+    nextSong,
+    previousSong,
+    seekTo,
+  } = useMusicPlayer();
 
-  const [songIndex, setSongIndex] = useState(
-    initialIndex >= 0 ? initialIndex : 0
-  );
+  const { importedSongs, isLoaded: libraryLoaded } =
+    useImportedSongs();
 
-  const [isChanging, setIsChanging] = useState(false);
+  const { isFavorite, toggleFavorite } = useFavorites();
+
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekTime, setSeekTime] = useState(0);
 
-  const changingRef = useRef(false);
   const seekingRef = useRef(false);
-  const seekRequestRef = useRef(0);
   const mountedRef = useRef(true);
+  const seekRequestRef = useRef(0);
 
-  // Listening history tracking
-  const pendingPlayRef = useRef<number | null>(null);
-  const wasPlayingRef = useRef(false);
+  const requestedId = Number(id);
 
-  const song = songs[songIndex];
+  // Select the requested song only when the route changes.
+  useEffect(() => {
+    if (libraryLoaded && Number.isFinite(requestedId)) {
+      selectSong(requestedId);
+    }
+  }, [requestedId, libraryLoaded, selectSong]);
 
-  const { isFavorite, toggleFavorite } = useFavorites();
-  const { recordPlay } = useListeningHistory();
+  // Reset seek UI when the selected song changes.
+  useEffect(() => {
+    seekingRef.current = false;
+    setIsSeeking(false);
+    setSeekTime(0);
+    seekRequestRef.current += 1;
+  }, [currentSongId]);
 
-  const initialSource =
-    audioSources[
-      songs[initialIndex >= 0 ? initialIndex : 0]?.id
-    ] ?? null;
+  // Clean up only screen-related state.
+  // Do NOT pause the shared audio player here.
+  useEffect(() => {
+    mountedRef.current = true;
 
-  const player = useAudioPlayer(initialSource, {
-    updateInterval: 500,
-  });
-
-  const status = useAudioPlayerStatus(player);
-
-  const audioSource = song
-    ? audioSources[song.id] ?? null
-    : null;
-
-  const duration = status.duration || 0;
-  const currentTime = status.currentTime || 0;
+    return () => {
+      mountedRef.current = false;
+      seekRequestRef.current += 1;
+    };
+  }, []);
 
   const canSeek =
-    !!audioSource &&
-    status.isLoaded &&
+    hasAudio &&
+    isLoaded &&
     duration > 0 &&
     !isChanging;
 
@@ -89,113 +98,6 @@ export default function MusicPlayerScreen() {
     ? seekTime
     : currentTime;
 
-  // Record a play only after playback actually starts
-  useEffect(() => {
-    if (status.playing && !wasPlayingRef.current) {
-      const songId = pendingPlayRef.current;
-
-      if (songId !== null) {
-        pendingPlayRef.current = null;
-        void recordPlay(songId);
-      }
-    }
-
-    wasPlayingRef.current = status.playing;
-  }, [status.playing, recordPlay]);
-
-  // Clean up when leaving the player
-  useEffect(() => {
-    mountedRef.current = true;
-
-    return () => {
-      mountedRef.current = false;
-      seekRequestRef.current += 1;
-      pendingPlayRef.current = null;
-      player.pause();
-    };
-  }, [player]);
-
-  // Change to next or previous song
-  const changeSong = (direction: number) => {
-    if (
-      changingRef.current ||
-      seekingRef.current ||
-      !song ||
-      songs.length === 0
-    ) {
-      return;
-    }
-
-    changingRef.current = true;
-    setIsChanging(true);
-
-    try {
-      const nextIndex =
-        (songIndex + direction + songs.length) %
-        songs.length;
-
-      const nextSong = songs[nextIndex];
-      const nextSource =
-        audioSources[nextSong.id] ?? null;
-
-      // Cancel any pending play for the previous song
-      pendingPlayRef.current = null;
-
-      player.pause();
-      player.replace(nextSource);
-
-      setSongIndex(nextIndex);
-      setSeekTime(0);
-      setIsSeeking(false);
-    } catch (error) {
-      console.error("Cannot change song:", error);
-    } finally {
-      changingRef.current = false;
-      setIsChanging(false);
-    }
-  };
-
-  // Play or pause audio
-  const handlePlayPause = async () => {
-    if (
-      !audioSource ||
-      !song ||
-      isChanging ||
-      seekingRef.current ||
-      !status.isLoaded
-    ) {
-      return;
-    }
-
-    try {
-      if (status.playing) {
-        pendingPlayRef.current = null;
-        player.pause();
-      } else {
-        // Restart if the song has finished
-        if (
-          duration > 0 &&
-          currentTime >= duration
-        ) {
-          await player.seekTo(0);
-        }
-
-        // Remember which song is about to start
-        pendingPlayRef.current = song.id;
-
-        player.play();
-      }
-    } catch (error) {
-      pendingPlayRef.current = null;
-
-      console.error(
-        "Cannot play or pause audio:",
-        error
-      );
-    }
-  };
-
-  // User starts dragging the seek bar
   const handleSeekStart = () => {
     if (!canSeek) {
       return;
@@ -206,16 +108,12 @@ export default function MusicPlayerScreen() {
     setIsSeeking(true);
   };
 
-  // Update selected time while dragging
   const handleSeekChange = (value: number) => {
-    if (!seekingRef.current) {
-      return;
+    if (seekingRef.current) {
+      setSeekTime(value);
     }
-
-    setSeekTime(value);
   };
 
-  // Jump to selected time
   const handleSeekComplete = (value: number) => {
     if (!canSeek || !seekingRef.current) {
       seekingRef.current = false;
@@ -223,54 +121,62 @@ export default function MusicPlayerScreen() {
       return;
     }
 
-    const newTime = Math.max(
+    const safeTime = Math.max(
       0,
       Math.min(value, duration)
     );
 
-    setSeekTime(newTime);
+    setSeekTime(safeTime);
 
     const requestId = ++seekRequestRef.current;
 
-    void player
-      .seekTo(newTime)
-      .catch((error) => {
-        console.error(
-          "Cannot seek audio:",
-          error
-        );
-      })
-      .finally(() => {
-        if (
-          mountedRef.current &&
-          requestId === seekRequestRef.current
-        ) {
-          seekingRef.current = false;
-          setIsSeeking(false);
-        }
-      });
+    void seekTo(safeTime).finally(() => {
+      if (
+        mountedRef.current &&
+        requestId === seekRequestRef.current
+      ) {
+        seekingRef.current = false;
+        setIsSeeking(false);
+      }
+    });
   };
 
-  if (!song) {
+  if (!libraryLoaded) {
     return (
-      <View style={styles.container}>
-        <View style={styles.content}>
-          <Text style={styles.title}>
-            No songs available
-          </Text>
-
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.backText}>
-              Go Back
-            </Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.centerContainer}>
+        <ActivityIndicator
+          size="large"
+          color="#C6A8FF"
+        />
+        <Text style={styles.message}>
+          Loading music library...
+        </Text>
       </View>
     );
   }
+
+  if (!currentSong) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.title}>
+          Song not found
+        </Text>
+
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.buttonText}>
+            Go Back
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const isImported = importedSongs.some(
+    (song) => song.id === currentSong.id
+  );
 
   return (
     <ScrollView
@@ -278,7 +184,6 @@ export default function MusicPlayerScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>
           MOODTUNES PLAYER
@@ -286,18 +191,18 @@ export default function MusicPlayerScreen() {
 
         <TouchableOpacity
           style={styles.headerButton}
-          onPress={() => toggleFavorite(song.id)}
+          onPress={() => toggleFavorite(currentSong.id)}
           accessibilityLabel="Toggle favorite"
         >
           <Ionicons
             name={
-              isFavorite(song.id)
+              isFavorite(currentSong.id)
                 ? "heart"
                 : "heart-outline"
             }
             size={23}
             color={
-              isFavorite(song.id)
+              isFavorite(currentSong.id)
                 ? "#FB7185"
                 : "#FFFFFF"
             }
@@ -305,41 +210,38 @@ export default function MusicPlayerScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Album Art */}
       <View style={styles.albumArt}>
         <Text style={styles.albumEmoji}>
-          {song.emoji}
+          {currentSong.emoji}
         </Text>
       </View>
 
-      {/* Song Details */}
       <Text style={styles.title}>
-        {song.title}
+        {currentSong.title}
       </Text>
 
       <Text style={styles.artist}>
-        {song.artist}
+        {currentSong.artist}
       </Text>
 
       <Text style={styles.mood}>
-        {song.mood} Mood
+        {isImported
+          ? "Imported MP3"
+          : `${currentSong.mood} Mood`}
       </Text>
 
-      {/* Draggable Seek Bar */}
       <View style={styles.progressContainer}>
         <Slider
           style={styles.slider}
           minimumValue={0}
-          maximumValue={
-            duration > 0 ? duration : 1
-          }
+          maximumValue={duration > 0 ? duration : 1}
           value={Math.min(
             Math.max(displayedTime, 0),
             duration > 0 ? duration : 1
           )}
-          minimumTrackTintColor="#22C55E"
+          minimumTrackTintColor="#C6A8FF"
           maximumTrackTintColor="#40516A"
-          thumbTintColor="#86EFAC"
+          thumbTintColor="#C6A8FF"
           disabled={!canSeek || isSeeking}
           onSlidingStart={handleSeekStart}
           onValueChange={handleSeekChange}
@@ -360,9 +262,8 @@ export default function MusicPlayerScreen() {
           <View style={styles.seekingRow}>
             <ActivityIndicator
               size="small"
-              color="#86EFAC"
+              color="#C6A8FF"
             />
-
             <Text style={styles.seekingText}>
               Seeking audio...
             </Text>
@@ -370,7 +271,6 @@ export default function MusicPlayerScreen() {
         )}
       </View>
 
-      {/* Music Controls */}
       <View style={styles.controls}>
         <TouchableOpacity
           style={[
@@ -378,7 +278,7 @@ export default function MusicPlayerScreen() {
             (isChanging || isSeeking) &&
               styles.disabledButton,
           ]}
-          onPress={() => changeSong(-1)}
+          onPress={previousSong}
           disabled={isChanging || isSeeking}
           accessibilityLabel="Previous song"
         >
@@ -392,31 +292,26 @@ export default function MusicPlayerScreen() {
         <TouchableOpacity
           style={[
             styles.playButton,
-            (
-              !audioSource ||
+            (!hasAudio ||
               isChanging ||
               isSeeking ||
-              !status.isLoaded
-            ) && styles.disabledButton,
+              !isLoaded) &&
+              styles.disabledButton,
           ]}
-          onPress={handlePlayPause}
+          onPress={() => void togglePlayback()}
           disabled={
-            !audioSource ||
+            !hasAudio ||
             isChanging ||
             isSeeking ||
-            !status.isLoaded
+            !isLoaded
           }
-          accessibilityLabel={
-            status.playing ? "Pause" : "Play"
-          }
+          accessibilityLabel={playing ? "Pause" : "Play"}
         >
           {isChanging ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
             <Ionicons
-              name={
-                status.playing ? "pause" : "play"
-              }
+              name={playing ? "pause" : "play"}
               size={26}
               color="#FFFFFF"
             />
@@ -429,7 +324,7 @@ export default function MusicPlayerScreen() {
             (isChanging || isSeeking) &&
               styles.disabledButton,
           ]}
-          onPress={() => changeSong(1)}
+          onPress={nextSong}
           disabled={isChanging || isSeeking}
           accessibilityLabel="Next song"
         >
@@ -441,22 +336,21 @@ export default function MusicPlayerScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Status Messages */}
-      {isChanging && (
-        <Text style={styles.message}>
-          Changing song...
-        </Text>
-      )}
-
-      {!audioSource && !isChanging && (
+      {!hasAudio && (
         <Text style={styles.message}>
           Audio is not available for this song yet.
         </Text>
       )}
 
-      {status.error && (
+      {hasAudio && !isLoaded && (
+        <Text style={styles.message}>
+          Loading audio...
+        </Text>
+      )}
+
+      {!!error && (
         <Text style={styles.errorText}>
-          Audio error: {status.error}
+          Audio error: {error}
         </Text>
       )}
 
@@ -472,7 +366,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#101827",
   },
-
+  centerContainer: {
+    flex: 1,
+    backgroundColor: "#101827",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
   content: {
     flexGrow: 1,
     alignItems: "center",
@@ -480,7 +380,6 @@ const styles = StyleSheet.create({
     paddingTop: 25,
     paddingBottom: 35,
   },
-
   header: {
     width: "100%",
     flexDirection: "row",
@@ -488,7 +387,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 35,
   },
-
   headerButton: {
     width: 42,
     height: 42,
@@ -497,14 +395,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   headerTitle: {
-    color: "#86EFAC",
+    color: "#C6A8FF",
     fontSize: 13,
     fontWeight: "bold",
     letterSpacing: 1.5,
   },
-
   albumArt: {
     width: 220,
     height: 220,
@@ -514,53 +410,44 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 25,
   },
-
   albumEmoji: {
     fontSize: 90,
   },
-
   title: {
     color: "#FFFFFF",
     fontSize: 25,
     fontWeight: "bold",
     textAlign: "center",
   },
-
   artist: {
     color: "#B5C3D3",
     fontSize: 16,
     marginTop: 8,
     textAlign: "center",
   },
-
   mood: {
-    color: "#86EFAC",
+    color: "#C6A8FF",
     fontSize: 13,
     marginTop: 12,
   },
-
   progressContainer: {
     width: "100%",
     marginTop: 40,
     marginBottom: 30,
   },
-
   slider: {
     width: "100%",
     height: 40,
   },
-
   timeRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 2,
   },
-
   timeText: {
     color: "#94A3B8",
     fontSize: 12,
   },
-
   seekingRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -568,12 +455,10 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 12,
   },
-
   seekingText: {
-    color: "#86EFAC",
+    color: "#C6A8FF",
     fontSize: 12,
   },
-
   controls: {
     width: "100%",
     flexDirection: "row",
@@ -582,7 +467,6 @@ const styles = StyleSheet.create({
     gap: 24,
     marginBottom: 20,
   },
-
   skipButton: {
     width: 48,
     height: 48,
@@ -591,49 +475,43 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   playButton: {
     width: 60,
     height: 60,
     borderRadius: 16,
-    backgroundColor: "#22C55E",
+    backgroundColor: "#7954B8",
     alignItems: "center",
     justifyContent: "center",
   },
-
   disabledButton: {
     backgroundColor: "#64748B",
   },
-
   message: {
     color: "#FBBF24",
     fontSize: 14,
     textAlign: "center",
     marginTop: 15,
   },
-
   errorText: {
     color: "#F87171",
     fontSize: 13,
     textAlign: "center",
     marginTop: 15,
   },
-
   footer: {
     color: "#64748B",
     fontSize: 12,
     marginTop: 45,
   },
-
   backButton: {
     padding: 14,
     backgroundColor: "#243247",
     borderRadius: 10,
     marginTop: 20,
   },
-
-  backText: {
+  buttonText: {
     color: "#FFFFFF",
     fontSize: 16,
+    fontWeight: "bold",
   },
 });

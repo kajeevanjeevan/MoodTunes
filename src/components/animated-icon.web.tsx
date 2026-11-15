@@ -1,108 +1,159 @@
-import { Image } from 'expo-image';
-import { StyleSheet, View } from 'react-native';
-import Animated, { Keyframe, Easing } from 'react-native-reanimated';
 
-import classes from './animated-icon.module.css';
-const DURATION = 300;
+import type { TabTriggerSlotProps } from "expo-router/ui";
 
-export function AnimatedSplashOverlay() {
-  return null;
+import {
+  TabList,
+  Tabs,
+  TabSlot,
+  TabTrigger,
+} from "expo-router/ui";
+
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+
+import MiniMusicPlayer from "@/components/MiniMusicPlayer";
+
+type TabButtonProps = TabTriggerSlotProps & {
+  children?: React.ReactNode;
+};
+
+function TabButton({
+  ref: _ref,
+  children,
+  isFocused,
+  ...props
+}: TabButtonProps) {
+  return (
+    <Pressable
+      {...props}
+      accessibilityRole="tab"
+      accessibilityState={{
+        selected: isFocused,
+      }}
+      style={[
+        styles.tabButton,
+        isFocused && styles.activeTab,
+      ]}
+    >
+      <Text
+        style={[
+          styles.tabText,
+          isFocused && styles.activeTabText,
+        ]}
+      >
+        {children}
+      </Text>
+    </Pressable>
+  );
 }
 
-const keyframe = new Keyframe({
-  0: {
-    transform: [{ scale: 0 }],
-  },
-  60: {
-    transform: [{ scale: 1.2 }],
-    easing: Easing.elastic(1.2),
-  },
-  100: {
-    transform: [{ scale: 1 }],
-    easing: Easing.elastic(1.2),
-  },
-});
-
-const logoKeyframe = new Keyframe({
-  0: {
-    opacity: 0,
-  },
-  60: {
-    transform: [{ scale: 1.2 }],
-    opacity: 0,
-    easing: Easing.elastic(1.2),
-  },
-  100: {
-    transform: [{ scale: 1 }],
-    opacity: 1,
-    easing: Easing.elastic(1.2),
-  },
-});
-
-const glowKeyframe = new Keyframe({
-  0: {
-    transform: [{ rotateZ: '-180deg' }, { scale: 0.8 }],
-    opacity: 0,
-  },
-  [DURATION / 1000]: {
-    transform: [{ rotateZ: '0deg' }, { scale: 1 }],
-    opacity: 1,
-    easing: Easing.elastic(0.7),
-  },
-  100: {
-    transform: [{ rotateZ: '7200deg' }],
-  },
-});
-
-export function AnimatedIcon() {
+export default function AppTabs() {
   return (
-    <View style={styles.iconContainer}>
-      <Animated.View entering={glowKeyframe.duration(60 * 1000 * 4)} style={styles.glow}>
-        <Image style={styles.glow} source={require('@/assets/images/logo-glow.png')} />
-      </Animated.View>
+    <Tabs>
+      <View style={styles.container}>
+        <View style={styles.screenContent}>
+          <TabSlot />
+        </View>
 
-      <Animated.View style={styles.background} entering={keyframe.duration(DURATION)}>
-        <div className={classes.expoLogoBackground} />
-      </Animated.View>
+        {/* Mini Music Player */}
+        <MiniMusicPlayer />
 
-      <Animated.View style={styles.imageContainer} entering={logoKeyframe.duration(DURATION)}>
-        <Image style={styles.image} source={require('@/assets/images/expo-logo.png')} />
-      </Animated.View>
-    </View>
+        <TabList asChild>
+          <View style={styles.tabBar}>
+            <TabTrigger
+              name="home"
+              href="/"
+              asChild
+            >
+              <TabButton>Home</TabButton>
+            </TabTrigger>
+
+            <TabTrigger
+              name="library"
+              href="/library"
+              asChild
+            >
+              <TabButton>Library</TabButton>
+            </TabTrigger>
+
+            <TabTrigger
+              name="playlists"
+              href="/playlists"
+              asChild
+            >
+              <TabButton>Playlists</TabButton>
+            </TabTrigger>
+
+            <TabTrigger
+              name="favorites"
+              href="/favorites"
+              asChild
+            >
+              <TabButton>Favorites</TabButton>
+            </TabTrigger>
+
+            <TabTrigger
+              name="explore"
+              href="/explore"
+              asChild
+            >
+              <TabButton>Explore</TabButton>
+            </TabTrigger>
+          </View>
+        </TabList>
+      </View>
+    </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: 'center',
-    width: '100%',
-    zIndex: 1000,
-    position: 'absolute',
-    top: 128 / 2 + 138,
+    flex: 1,
+    backgroundColor: "#11101D",
   },
-  imageContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
+
+  screenContent: {
+    flex: 1,
+    minHeight: 0,
   },
-  glow: {
-    width: 201,
-    height: 201,
-    position: 'absolute',
+
+  tabBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    backgroundColor: "#211D30",
+    borderTopWidth: 1,
+    borderTopColor: "#39304F",
+    paddingVertical: 12,
+    paddingHorizontal: 4,
   },
-  iconContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 128,
-    height: 128,
+
+  tabButton: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 2,
+    borderRadius: 10,
   },
-  image: {
-    position: 'absolute',
-    width: 76,
-    height: 71,
+
+  activeTab: {
+    backgroundColor: "#7954B8",
   },
-  background: {
-    width: 128,
-    height: 128,
-    position: 'absolute',
+
+  tabText: {
+    color: "#BEB6D3",
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+
+  activeTabText: {
+    color: "#FFFFFF",
+    fontWeight: "bold",
   },
 });
