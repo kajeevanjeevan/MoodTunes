@@ -46,10 +46,17 @@ export default function MusicPlayerScreen() {
     nextSong,
     previousSong,
     seekTo,
+
+    shuffleEnabled,
+    repeatMode,
+    toggleShuffle,
+    cycleRepeatMode,
   } = useMusicPlayer();
 
-  const { importedSongs, isLoaded: libraryLoaded } =
-    useImportedSongs();
+  const {
+    importedSongs,
+    isLoaded: libraryLoaded,
+  } = useImportedSongs();
 
   const { isFavorite, toggleFavorite } = useFavorites();
 
@@ -62,14 +69,14 @@ export default function MusicPlayerScreen() {
 
   const requestedId = Number(id);
 
-  // Select the requested song only when the route changes.
+  // Select song when route changes.
   useEffect(() => {
     if (libraryLoaded && Number.isFinite(requestedId)) {
       selectSong(requestedId);
     }
   }, [requestedId, libraryLoaded, selectSong]);
 
-  // Reset seek UI when the selected song changes.
+  // Reset slider when song changes.
   useEffect(() => {
     seekingRef.current = false;
     setIsSeeking(false);
@@ -77,8 +84,7 @@ export default function MusicPlayerScreen() {
     seekRequestRef.current += 1;
   }, [currentSongId]);
 
-  // Clean up only screen-related state.
-  // Do NOT pause the shared audio player here.
+  // Do not stop shared playback when leaving screen.
   useEffect(() => {
     mountedRef.current = true;
 
@@ -99,9 +105,7 @@ export default function MusicPlayerScreen() {
     : currentTime;
 
   const handleSeekStart = () => {
-    if (!canSeek) {
-      return;
-    }
+    if (!canSeek) return;
 
     seekingRef.current = true;
     setSeekTime(currentTime);
@@ -178,6 +182,23 @@ export default function MusicPlayerScreen() {
     (song) => song.id === currentSong.id
   );
 
+  const repeatIcon =
+    repeatMode === "one"
+      ? "repeat-outline"
+      : "repeat";
+
+  const repeatColor =
+    repeatMode === "off"
+      ? "#94A3B8"
+      : "#C6A8FF";
+
+  const repeatLabel =
+    repeatMode === "off"
+      ? "Repeat Off"
+      : repeatMode === "all"
+        ? "Repeat All"
+        : "Repeat One";
+
   return (
     <ScrollView
       style={styles.container}
@@ -191,7 +212,9 @@ export default function MusicPlayerScreen() {
 
         <TouchableOpacity
           style={styles.headerButton}
-          onPress={() => toggleFavorite(currentSong.id)}
+          onPress={() =>
+            toggleFavorite(currentSong.id)
+          }
           accessibilityLabel="Toggle favorite"
         >
           <Ionicons
@@ -230,6 +253,7 @@ export default function MusicPlayerScreen() {
           : `${currentSong.mood} Mood`}
       </Text>
 
+      {/* Audio progress */}
       <View style={styles.progressContainer}>
         <Slider
           style={styles.slider}
@@ -264,6 +288,7 @@ export default function MusicPlayerScreen() {
               size="small"
               color="#C6A8FF"
             />
+
             <Text style={styles.seekingText}>
               Seeking audio...
             </Text>
@@ -271,7 +296,32 @@ export default function MusicPlayerScreen() {
         )}
       </View>
 
+      {/* Shuffle, Previous, Play, Next, Repeat */}
       <View style={styles.controls}>
+        <TouchableOpacity
+          style={[
+            styles.modeButton,
+            shuffleEnabled && styles.activeModeButton,
+          ]}
+          onPress={toggleShuffle}
+          accessibilityLabel={
+            shuffleEnabled
+              ? "Turn shuffle off"
+              : "Turn shuffle on"
+          }
+          accessibilityRole="button"
+        >
+          <Ionicons
+            name="shuffle"
+            size={22}
+            color={
+              shuffleEnabled
+                ? "#C6A8FF"
+                : "#94A3B8"
+            }
+          />
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={[
             styles.skipButton,
@@ -284,7 +334,7 @@ export default function MusicPlayerScreen() {
         >
           <Ionicons
             name="play-skip-back"
-            size={22}
+            size={21}
             color="#FFFFFF"
           />
         </TouchableOpacity>
@@ -305,7 +355,9 @@ export default function MusicPlayerScreen() {
             isSeeking ||
             !isLoaded
           }
-          accessibilityLabel={playing ? "Pause" : "Play"}
+          accessibilityLabel={
+            playing ? "Pause" : "Play"
+          }
         >
           {isChanging ? (
             <ActivityIndicator color="#FFFFFF" />
@@ -330,10 +382,50 @@ export default function MusicPlayerScreen() {
         >
           <Ionicons
             name="play-skip-forward"
-            size={22}
+            size={21}
             color="#FFFFFF"
           />
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.modeButton,
+            repeatMode !== "off" &&
+              styles.activeModeButton,
+          ]}
+          onPress={cycleRepeatMode}
+          accessibilityLabel={
+            `${repeatLabel}. Change repeat mode`
+          }
+          accessibilityRole="button"
+        >
+          <View style={styles.repeatIconContainer}>
+            <Ionicons
+              name={repeatIcon}
+              size={22}
+              color={repeatColor}
+            />
+
+            {repeatMode === "one" && (
+              <View style={styles.repeatOneBadge}>
+                <Text style={styles.repeatOneText}>
+                  1
+                </Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Playback mode information */}
+      <View style={styles.modeStatusRow}>
+        <Text style={styles.modeStatusText}>
+          Shuffle: {shuffleEnabled ? "On" : "Off"}
+        </Text>
+
+        <Text style={styles.modeStatusText}>
+          {repeatLabel}
+        </Text>
       </View>
 
       {!hasAudio && (
@@ -366,6 +458,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#101827",
   },
+
   centerContainer: {
     flex: 1,
     backgroundColor: "#101827",
@@ -373,6 +466,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 24,
   },
+
   content: {
     flexGrow: 1,
     alignItems: "center",
@@ -380,6 +474,7 @@ const styles = StyleSheet.create({
     paddingTop: 25,
     paddingBottom: 35,
   },
+
   header: {
     width: "100%",
     flexDirection: "row",
@@ -387,6 +482,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 35,
   },
+
   headerButton: {
     width: 42,
     height: 42,
@@ -395,12 +491,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   headerTitle: {
     color: "#C6A8FF",
     fontSize: 13,
     fontWeight: "bold",
     letterSpacing: 1.5,
   },
+
   albumArt: {
     width: 220,
     height: 220,
@@ -410,44 +508,53 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 25,
   },
+
   albumEmoji: {
     fontSize: 90,
   },
+
   title: {
     color: "#FFFFFF",
     fontSize: 25,
     fontWeight: "bold",
     textAlign: "center",
   },
+
   artist: {
     color: "#B5C3D3",
     fontSize: 16,
     marginTop: 8,
     textAlign: "center",
   },
+
   mood: {
     color: "#C6A8FF",
     fontSize: 13,
     marginTop: 12,
   },
+
   progressContainer: {
     width: "100%",
     marginTop: 40,
     marginBottom: 30,
   },
+
   slider: {
     width: "100%",
     height: 40,
   },
+
   timeRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 2,
   },
+
   timeText: {
     color: "#94A3B8",
     fontSize: 12,
   },
+
   seekingRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -455,26 +562,42 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 12,
   },
+
   seekingText: {
     color: "#C6A8FF",
     fontSize: 12,
   },
+
   controls: {
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 24,
-    marginBottom: 20,
+    justifyContent: "space-between",
+    marginBottom: 12,
+    gap: 6,
   },
+
+  modeButton: {
+    width: 40,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  activeModeButton: {
+    backgroundColor: "#35264F",
+  },
+
   skipButton: {
-    width: 48,
+    width: 43,
     height: 48,
     borderRadius: 14,
     backgroundColor: "#243247",
     alignItems: "center",
     justifyContent: "center",
   },
+
   playButton: {
     width: 60,
     height: 60,
@@ -483,32 +606,71 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
+  repeatIconContainer: {
+    position: "relative",
+  },
+
+  repeatOneBadge: {
+    position: "absolute",
+    top: 5,
+    left: 7,
+    backgroundColor: "#35264F",
+    minWidth: 10,
+    alignItems: "center",
+  },
+
+  repeatOneText: {
+    color: "#FFFFFF",
+    fontSize: 9,
+    fontWeight: "bold",
+  },
+
+  modeStatusRow: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 8,
+    marginBottom: 15,
+  },
+
+  modeStatusText: {
+    color: "#B5C3D3",
+    fontSize: 12,
+  },
+
   disabledButton: {
     backgroundColor: "#64748B",
+    opacity: 0.6,
   },
+
   message: {
     color: "#FBBF24",
     fontSize: 14,
     textAlign: "center",
     marginTop: 15,
   },
+
   errorText: {
     color: "#F87171",
     fontSize: 13,
     textAlign: "center",
     marginTop: 15,
   },
+
   footer: {
     color: "#64748B",
     fontSize: 12,
     marginTop: 45,
   },
+
   backButton: {
     padding: 14,
     backgroundColor: "#243247",
     borderRadius: 10,
     marginTop: 20,
   },
+
   buttonText: {
     color: "#FFFFFF",
     fontSize: 16,
