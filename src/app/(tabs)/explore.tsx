@@ -10,63 +10,64 @@ import {
   View,
 } from "react-native";
 
+import { useImportedSongs } from "@/context/ImportedSongsContext";
 import { useListeningHistory } from "@/context/ListeningHistoryContext";
-import { songs } from "@/data/songs";
+import { useMusicPlayer } from "@/context/MusicPlayerContext";
 
 export default function ExploreScreen() {
   const {
     playCounts,
     recentPlays,
     totalPlays,
-    isLoaded,
+    isLoaded: historyLoaded,
   } = useListeningHistory();
 
-  // Sort songs by number of plays
+  const { allSongs } = useMusicPlayer();
+
+  const { isLoaded: importedSongsLoaded } =
+    useImportedSongs();
+
+  // Sort both built-in and imported songs by play count.
   const mostPlayedSongs = useMemo(() => {
-    return songs
+    return allSongs
       .filter((song) => (playCounts[song.id] ?? 0) > 0)
       .sort(
         (a, b) =>
           (playCounts[b.id] ?? 0) -
           (playCounts[a.id] ?? 0)
       );
-  }, [playCounts]);
+  }, [allSongs, playCounts]);
 
-  // Show recently played songs without duplicates
+  // Show recently played songs without duplicates.
+  // Both built-in and imported songs are supported.
   const recentlyPlayedSongs = useMemo(() => {
     const seen = new Set<number>();
 
     return recentPlays
-      .filter((entry) => {
-        if (seen.has(entry.songId)) {
-          return false;
-        }
-
-        seen.add(entry.songId);
-        return true;
-      })
       .map((entry) => {
-        const song = songs.find(
+        const song = allSongs.find(
           (item) => item.id === entry.songId
         );
 
-        return song
-          ? {
-              ...song,
-              playedAt: entry.playedAt,
-            }
-          : null;
+        if (!song || seen.has(entry.songId)) {
+          return null;
+        }
+
+        seen.add(entry.songId);
+
+        return {
+          ...song,
+          playedAt: entry.playedAt,
+        };
       })
       .filter(
-        (
-          song
-        ): song is (typeof songs)[number] & {
-          playedAt: number;
-        } => song !== null
+        (song): song is NonNullable<typeof song> =>
+          song !== null
       )
       .slice(0, 10);
-  }, [recentPlays]);
+  }, [recentPlays, allSongs]);
 
+  // Count distinct available songs that have been played.
   const uniqueSongsPlayed = mostPlayedSongs.length;
 
   const openSong = (songId: number) => {
@@ -103,7 +104,7 @@ export default function ExploreScreen() {
     return date.toLocaleDateString();
   };
 
-  if (!isLoaded) {
+  if (!historyLoaded || !importedSongsLoaded) {
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.loadingText}>
