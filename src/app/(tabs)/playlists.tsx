@@ -58,7 +58,7 @@ export default function PlaylistsScreen() {
   } = useImportedSongs();
 
   const {
-    selectSong,
+    startPlaylistSong,
     currentSongId,
     playing,
   } = useMusicPlayer();
@@ -347,9 +347,16 @@ export default function PlaylistsScreen() {
     }
   };
 
-  // Open shared Music Player.
+  // Open shared Music Player with the selected playlist as playback source.
   const openPlayer = (id: number) => {
-    selectSong(id);
+    if (!selectedPlaylist) return;
+
+    startPlaylistSong(
+      id,
+      selectedPlaylist.id,
+      selectedPlaylist.name,
+      selectedPlaylist.songIds
+    );
 
     router.push({
       pathname: "/player/[id]",
